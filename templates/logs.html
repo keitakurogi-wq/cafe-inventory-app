@@ -4,21 +4,11 @@
 
 {% block content %}
 
-<!-- ページタイトル -->
-<section class="mb-4">
-
-    <a href="/" class="text-decoration-none text-muted small">
-        ← 在庫管理へ戻る
-    </a>
-
-    <h2 class="page-title mt-3">
-        履歴一覧
-    </h2>
-
-    <p class="page-description">
-        いつ・どの商品を・どれだけ入出荷したかを確認できます。
-    </p>
-
+<section class="page-header">
+    <div>
+        <h2 class="page-title">履歴一覧</h2>
+        <p class="page-description">いつ・どの商品を・どれだけ入出荷したかを確認できます。</p>
+    </div>
 </section>
 
 
@@ -92,14 +82,13 @@
 
             <button
                 type="submit"
-                class="btn btn-lg text-white px-5"
-                style="background-color: var(--coffee);"
+                class="btn btn-coffee btn-lg px-5"
             >
                 検索
             </button>
 
             <!-- 条件なしのURLへ移動 ＝ クリア -->
-            <a href="{{ url_for('logs') }}" class="btn btn-lg btn-outline-secondary px-5">
+            <a href="{{ url_for('logs') }}" class="btn btn-soft btn-lg px-5">
                 クリア
             </a>
 
@@ -124,7 +113,8 @@
 
     {% if logs %}
 
-    <div class="table-responsive">
+    <!-- PC：テーブル -->
+    <div class="table-wrap d-none d-md-block">
 
         <table class="table inventory-table align-middle">
 
@@ -187,6 +177,34 @@
         </table>
 
     </div>
+
+
+    <!-- スマホ：カード型の一覧 -->
+    <div class="item-list d-md-none">
+        {% for log in logs %}
+        <div class="item-card">
+            <div class="item-card-head">
+                <div>
+                    <div class="item-card-title">{{ log["product_name"] }}</div>
+                    <div class="item-card-sub">{{ log["created_at"][:16] }} ・ {{ log["employee_name"] }}</div>
+                </div>
+                <div class="text-end">
+                    {% if log["category_name"] == "入荷" %}
+                        <span class="stock-badge stock-normal">入荷</span>
+                        <div class="fw-bold num mt-1">+{{ log["quantity"] }} {{ log["unit"] }}</div>
+                    {% else %}
+                        <span class="stock-badge stock-shortage">{{ log["category_name"] }}</span>
+                        <div class="fw-bold num mt-1">−{{ log["quantity"] }} {{ log["unit"] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if log["memo"] %}
+            <div class="item-card-sub mt-2"><i class="bi bi-chat-left-text"></i> {{ log["memo"] }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
 
     {% else %}
 

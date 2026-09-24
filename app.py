@@ -279,27 +279,143 @@ def logout():
 @login_required
 def index():
 
+    # 商品名の検索キーワード（?q=ミルク など）
+    keyword = request.args.get("q", "").strip()
+
     conn = get_db_connection()
-
-    products = conn.execute(
-        """
-        SELECT
-            product_id,
-            product_name,
-            unit,
-            target_stock,
-            current_stock,
-            current_stock - target_stock AS difference
-        FROM products
-        ORDER BY product_id
-        """
-    ).fetchall()
-
+    products = get_stock_list(conn, keyword)
     conn.close()
+
+    # 不足している商品の数（発注リストへの案内に使う）
+    shortage_count = len([p for p in products if p["difference"] < 0])
 
     return render_template(
         "index.html",
-        products=products
+        products=products,
+        keyword=keyword,
+        shortage_count=shortage_count,
+        greeting=get_greeting(),
+        today=format_today()
+    )
+
+
+# 「あと何日で切れそうか」を計算するときに見る期間（日数）
+FORECAST_DAYS = 14
+
+
+def get_stock_list(conn, keyword=""):
+    """
+    在庫一覧を取得し、過不足と「あと何日で切れそうか」を計算して返す。
+
+    あと◯日の計算方法：
+      直近14日間の「消費＋廃棄」の合計 ÷ 14 ＝ 1日あたりの使用量
+      現在庫 ÷ 1日あたりの使用量 ＝ あと何日もつか
+    """
+    since = (datetime.now(JST) - timedelta(days=FORECAST_DAYS)).strftime("%Y-%m-%d")
+
+    sql = """
+        SELECT
+            products.product_id,
+            products.product_name,
+            products.unit,
+            products.target_stock,
+            products.current_stock,
+            products.current_stock - products.target_stock AS difference,
+            -- 直近14日間の消費＋廃棄の合計（履歴がなければ 0）
+            COALESCE(SUM(inventory_logs.quantity), 0) AS used_quantity
+        FROM products
+        LEFT JOIN inventory_logs
+            ON inventory_logs.product_id = products.product_id
+            AND date(inventory_logs.created_at) >= ?
+            AND inventory_logs.category_id IN (
+                SELECT category_id FROM categories WHERE category_name IN ('消費', '廃棄')
+            )
+    """
+    params = [since]
+
+    if keyword:
+        sql += " WHERE products.product_name LIKE ?"
+        params.append(f"%{keyword}%")
+
+    sql += " GROUP BY products.product_id ORDER BY products.product_id"
+
+    rows = conn.execute(sql, params).fetchall()
+
+    # テンプレートで使いやすいように辞書に変換し、計算結果を追加する
+    products = []
+    for row in rows:
+        product = dict(row)
+
+        daily_usage = product["used_quantity"] / FORECAST_DAYS
+
+        if daily_usage > 0:
+            product["days_left"] = int(product["current_stock"] / daily_usage)
+        else:
+            product["days_left"] = None   # 使用実績がないので計算できない
+
+        # 残量バーの長さ（適正在庫に対する割合。最大100%）
+        if product["target_stock"] > 0:
+            product["stock_percent"] = min(100, int(product["current_stock"] * 100 / product["target_stock"]))
+        else:
+            product["stock_percent"] = 100
+
+        products.append(product)
+
+    return products
+
+
+def get_greeting():
+    """
+    時間帯に合わせたあいさつを返す。
+    """
+    hour = datetime.now(JST).hour
+
+    if hour < 11:
+        return "おはようございます"
+    elif hour < 17:
+        return "こんにちは"
+    else:
+        return "お疲れさまです"
+
+
+def format_today():
+    """
+    今日の日付を「2026年9月24日（木）」の形で返す。
+    """
+    now = datetime.now(JST)
+    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    return f"{now.year}年{now.month}月{now.day}日（{weekdays[now.weekday()]}）"
+
+
+# =========================
+# 発注リスト
+# =========================
+
+@app.route("/orders")
+@login_required
+def orders():
+
+    conn = get_db_connection()
+    products = get_stock_list(conn)
+    conn.close()
+
+    # 適正在庫を下回っている商品 → 不足分を発注
+    order_items = []
+    # 足りてはいるが、あと3日以内に切れそうな商品 → 注意
+    warning_items = []
+
+    for product in products:
+        if product["difference"] < 0:
+            product["order_quantity"] = -product["difference"]
+            order_items.append(product)
+        elif product["days_left"] is not None and product["days_left"] <= 3:
+            warning_items.append(product)
+
+    return render_template(
+        "orders.html",
+        order_items=order_items,
+        warning_items=warning_items,
+        today=format_today()
     )
 
 
@@ -374,6 +490,32 @@ def inventory_input():
         employees=employees,
         form=request.form
     )
+
+
+@app.route("/input/quick", methods=["POST"])
+@login_required
+def inventory_quick():
+    """
+    ワンタップ登録：「ミルク −1」のボタンを押すだけで登録する。
+    数量は1、担当者はログイン中の人で固定。
+    登録処理そのものは通常の入力と同じ register_inventory() を使う。
+    """
+    form = {
+        "product_id": request.form.get("product_id", ""),
+        "category_id": request.form.get("category_id", ""),
+        "quantity": "1",
+        "employee_id": g.user["employee_id"],
+        "memo": "ワンタップ登録",
+    }
+
+    error = register_inventory(form)
+
+    if error is None:
+        flash("1つ登録しました。", "success")
+    else:
+        flash(error, "danger")
+
+    return redirect(url_for("inventory_input"))
 
 
 def register_inventory(form):

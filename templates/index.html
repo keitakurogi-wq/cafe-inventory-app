@@ -4,84 +4,61 @@
 
 {% block content %}
 
-<!-- ページタイトル -->
-<section class="mb-4">
-
-    <h2 class="page-title">
-        在庫管理
-    </h2>
-
-    <p class="page-description">
-        今日の在庫状況を確認し、必要に応じて入出荷の登録を行いましょう。
-    </p>
-
+<!-- あいさつ（時間帯で変わる）と今日の日付 -->
+<section class="page-header">
+    <div>
+        <h2 class="page-title">{{ greeting }}</h2>
+        <p class="page-description">今日も在庫状況を確認し、必要に応じて入出荷の登録を行いましょう。</p>
+    </div>
+    <div class="page-date">{{ today }}</div>
 </section>
+
+
+<!-- 不足があるときだけ、発注リストへの案内を出す -->
+{% if shortage_count > 0 and not keyword %}
+<a href="{{ url_for('orders') }}" class="notice-link">
+    <span>
+        <i class="bi bi-exclamation-circle"></i>
+        不足している商品が {{ shortage_count }} 件あります
+    </span>
+    <span>発注リストを見る <i class="bi bi-chevron-right"></i></span>
+</a>
+{% endif %}
 
 
 <!-- メイン操作 -->
 <section class="row g-3 mb-4">
 
-    <!-- 入出荷入力 -->
-    <div class="col-12 col-md-4">
-
-        <a
-            href="{{ url_for('inventory_input') }}"
-            class="action-card action-card-primary h-100"
-        >
-
-            <div class="action-title">
-                ＋ 入出荷を入力
+    <div class="col-12 col-md">
+        <a href="{{ url_for('inventory_input') }}" class="action-card action-card-primary h-100">
+            <i class="bi bi-plus-circle nav-icon"></i>
+            <div>
+                <div class="action-title">入出荷を入力</div>
+                <div class="action-description">商品の入荷・消費・廃棄を登録</div>
             </div>
-
-            <div class="action-description">
-                商品の入荷・消費・廃棄を登録します
-            </div>
-
         </a>
-
     </div>
 
-
-    <!-- 履歴 -->
-    <div class="col-12 col-md-4">
-
-        <a
-            href="{{ url_for('logs') }}"
-            class="action-card h-100"
-        >
-
-            <div class="action-title">
-                ☷ 履歴を見る
+    <div class="col-12 col-md">
+        <a href="{{ url_for('logs') }}" class="action-card h-100">
+            <i class="bi bi-list-ul nav-icon"></i>
+            <div>
+                <div class="action-title">履歴を見る</div>
+                <div class="action-description">入出荷の履歴を確認</div>
             </div>
-
-            <div class="action-description">
-                過去の入出荷履歴を確認できます
-            </div>
-
         </a>
-
     </div>
-
 
     <!-- マスタ（店長のみ表示。URL直打ちは app.py 側で拒否している） -->
     {% if g.user["role"] == "manager" %}
-    <div class="col-12 col-md-4">
-
-        <a
-            href="{{ url_for('master') }}"
-            class="action-card h-100"
-        >
-
-            <div class="action-title">
-                ⚙ マスタ管理
+    <div class="col-12 col-md">
+        <a href="{{ url_for('master') }}" class="action-card h-100">
+            <i class="bi bi-gear nav-icon"></i>
+            <div>
+                <div class="action-title">マスタ管理</div>
+                <div class="action-description">商品情報を管理</div>
             </div>
-
-            <div class="action-description">
-                商品や適正在庫の設定を行います
-            </div>
-
         </a>
-
     </div>
     {% endif %}
 
@@ -91,123 +68,137 @@
 <!-- 在庫状況 -->
 <section class="inventory-card">
 
-    <div
-        class="
-            d-flex
-            flex-column
-            flex-md-row
-            justify-content-between
-            align-items-md-center
-            gap-2
-            mb-3
-        "
-    >
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
 
-        <h3 class="inventory-card-title mb-0">
-            現在の在庫状況
+        <h3 class="inventory-card-title">
+            <i class="bi bi-box-seam"></i>
+            在庫状況一覧
         </h3>
 
-        <div class="small text-muted">
-            赤：不足 ／ 緑：適正 ／ 黄：過剰
-        </div>
+        <!-- 商品名で検索（GETで送信） -->
+        <form method="GET" action="{{ url_for('index') }}" class="search-box">
+            <i class="bi bi-search nav-icon"></i>
+            <input
+                type="search"
+                class="form-control"
+                name="q"
+                value="{{ keyword }}"
+                placeholder="商品名で検索…"
+                aria-label="商品名で検索"
+            >
+        </form>
 
     </div>
 
+    {% if keyword %}
+    <p class="small text-muted mb-3">
+        「{{ keyword }}」の検索結果：{{ products|length }} 件
+        <a href="{{ url_for('index') }}" class="ms-2">検索を解除</a>
+    </p>
+    {% endif %}
 
-    <div class="table-responsive">
 
+    {#
+        状態バッジと「あと◯日」は PC・スマホの両方で使うので、
+        マクロ（Jinja2 の関数のようなもの）にまとめておく
+    #}
+    {% macro status_badge(product) %}
+        {% if product["difference"] < 0 %}
+            <span class="stock-badge stock-shortage">不足</span>
+        {% elif product["difference"] == 0 %}
+            <span class="stock-badge stock-normal">適正</span>
+        {% else %}
+            <span class="stock-badge stock-excess">過剰</span>
+        {% endif %}
+    {% endmacro %}
+
+    {% macro days_left(product) %}
+        {% if product["days_left"] is none %}
+            <span class="text-muted small">—</span>
+        {% elif product["days_left"] <= 3 %}
+            <span class="text-shortage">あと {{ product["days_left"] }} 日</span>
+        {% else %}
+            あと <span class="num">{{ product["days_left"] }}</span> 日
+        {% endif %}
+    {% endmacro %}
+
+
+    {% if products %}
+
+    <!-- PC：テーブル表示 -->
+    <div class="table-wrap d-none d-md-block">
         <table class="table inventory-table align-middle">
-
             <thead>
-
                 <tr>
                     <th>商品名</th>
-                    <th>現在庫</th>
-                    <th>適正在庫</th>
-                    <th>状態 / 過不足</th>
+                    <th>現在庫 / 適正在庫</th>
+                    <th>過不足</th>
+                    <th>在庫の目安</th>
+                    <th>状態</th>
                 </tr>
-
             </thead>
-
-
             <tbody>
-
                 {% for product in products %}
-
                 <tr>
+                    <td><strong>{{ product["product_name"] }}</strong></td>
 
-                    <!-- 商品名 -->
+                    <!-- 数字と残量バー -->
                     <td>
-
-                        <strong>
-                            {{ product["product_name"] }}
-                        </strong>
-
+                        <span class="num">{{ product["current_stock"] }}</span> / {{ product["target_stock"] }} {{ product["unit"] }}
+                        <div class="stock-bar">
+                            <div
+                                class="stock-bar-fill {% if product['difference'] < 0 %}is-shortage{% endif %}"
+                                style="width: {{ product['stock_percent'] }}%;"
+                            ></div>
+                        </div>
                     </td>
 
-
-                    <!-- 現在庫 -->
-                    <td>
-
-                        {{ product["current_stock"] }}
-                        {{ product["unit"] }}
-
+                    <td class="num {% if product['difference'] < 0 %}text-shortage{% endif %}">
+                        {% if product["difference"] > 0 %}+{% endif %}{{ product["difference"] }} {{ product["unit"] }}
                     </td>
 
+                    <td>{{ days_left(product) }}</td>
 
-                    <!-- 適正在庫 -->
-                    <td>
-
-                        {{ product["target_stock"] }}
-                        {{ product["unit"] }}
-
-                    </td>
-
-
-                    <!-- 状態 -->
-                    <td>
-
-                        {% if product["difference"] < 0 %}
-
-                            <span class="stock-badge stock-shortage">
-
-                                不足
-                                {{ product["difference"] }}
-                                {{ product["unit"] }}
-
-                            </span>
-
-                        {% elif product["difference"] == 0 %}
-
-                            <span class="stock-badge stock-normal">
-
-                                適正
-
-                            </span>
-
-                        {% else %}
-
-                            <span class="stock-badge stock-excess">
-
-                                過剰
-                                +{{ product["difference"] }}
-                                {{ product["unit"] }}
-
-                            </span>
-
-                        {% endif %}
-
-                    </td>
-
+                    <td>{{ status_badge(product) }}</td>
                 </tr>
-
                 {% endfor %}
-
             </tbody>
-
         </table>
-
     </div>
+
+    <!-- スマホ：カード型の一覧 -->
+    <div class="item-list d-md-none">
+        {% for product in products %}
+        <div class="item-card">
+            <div class="item-card-head">
+                <div>
+                    <div class="item-card-title">{{ product["product_name"] }}</div>
+                    <div class="item-card-sub">
+                        <span class="num">{{ product["current_stock"] }}</span> / {{ product["target_stock"] }} {{ product["unit"] }}
+                        ・ {{ days_left(product) }}
+                    </div>
+                </div>
+                {{ status_badge(product) }}
+            </div>
+            <div class="stock-bar">
+                <div
+                    class="stock-bar-fill {% if product['difference'] < 0 %}is-shortage{% endif %}"
+                    style="width: {{ product['stock_percent'] }}%;"
+                ></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <p class="small text-muted mt-3 mb-0">
+        ※ 在庫の目安：直近14日間の消費・廃棄のペースから計算しています。
+    </p>
+
+    {% else %}
+
+        <p class="text-muted text-center py-4 mb-0">該当する商品はありません。</p>
+
+    {% endif %}
 
 </section>
 

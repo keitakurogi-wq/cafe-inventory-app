@@ -2,17 +2,17 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
+    <title>{% block title %}在庫管理アプリ{% endblock %}</title>
+
+    <!-- フォント（IBM Plex Sans JP：日本語も英数字もそろって読みやすい） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
     >
-
-    <title>
-        {% block title %}
-        在庫管理アプリ
-        {% endblock %}
-    </title>
 
     <!-- Bootstrap -->
     <link
@@ -20,63 +20,90 @@
         rel="stylesheet"
     >
 
-    <!-- オリジナルCSS -->
+    <!-- Bootstrap Icons（アイコン。<i class="bi bi-house"></i> のように使う） -->
     <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}"
     >
+
+    <!-- オリジナルCSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 
-    <!-- 共通ヘッダー -->
-    <header class="app-header">
-        <div class="container">
-            <div class="d-flex align-items-center justify-content-between">
+{#
+    メニューの項目。
+    endpoints：そのメニューを「選択中」にするページ（app.py の関数名）
+    manager_only：True なら店長にだけ表示
+    ※ 表示を隠すだけでなく、app.py の @manager_required でもアクセスを拒否している
+#}
+{% set menu = [
+    {"label": "ホーム", "icon": "bi-house-door", "url": url_for("index"), "endpoints": ["index"], "manager_only": False},
+    {"label": "入出荷入力", "icon": "bi-plus-circle", "url": url_for("inventory_input"), "endpoints": ["inventory_input"], "manager_only": False},
+    {"label": "履歴一覧", "icon": "bi-list-ul", "url": url_for("logs"), "endpoints": ["logs"], "manager_only": False},
+    {"label": "発注リスト", "icon": "bi-cart3", "url": url_for("orders"), "endpoints": ["orders"], "manager_only": False},
+    {"label": "マスタ管理", "icon": "bi-gear", "url": url_for("master"),
+     "endpoints": ["master", "product_edit", "employee_edit"], "manager_only": True},
+] %}
 
-                <h1 class="app-header-title">
-                    ☕ 在庫管理
-                </h1>
 
-                {% if g.user %}
+<!-- 共通ヘッダー：アプリ名とログイン中の人だけ（ページ名は各ページに書く） -->
+<header class="app-header">
 
-                    <!-- ログイン中の人と権限、ログアウト -->
-                    <div class="d-flex align-items-center gap-2 small">
+    <a href="{{ url_for('index') }}" class="app-brand">
+        <span class="app-brand-name">☕ 在庫管理</span>
+        <span class="app-brand-sub">喫茶店の在庫をかんたんに管理</span>
+    </a>
 
-                        <span>
-                            {{ g.user["employee_name"] }}
-                            <span class="badge bg-light text-dark">
-                                {% if g.user["role"] == "manager" %}店長{% else %}スタッフ{% endif %}
-                            </span>
-                        </span>
+    {% if g.user %}
+    <div class="user-chip ms-auto">
 
-                        <!-- ログアウトはPOSTで送る -->
-                        <form method="POST" action="{{ url_for('logout') }}" class="m-0">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline-light">
-                                ログアウト
-                            </button>
-                        </form>
+        <i class="bi bi-person-circle"></i>
+        <span class="user-name">{{ g.user["employee_name"] }}</span>
+        <span class="role-badge">
+            {% if g.user["role"] == "manager" %}店長{% else %}スタッフ{% endif %}
+        </span>
 
-                    </div>
+        <!-- ログアウトはPOSTで送る -->
+        <form method="POST" action="{{ url_for('logout') }}" class="m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-logout" title="ログアウト">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="d-none d-md-inline">ログアウト</span>
+            </button>
+        </form>
 
-                {% else %}
+    </div>
+    {% endif %}
 
-                    <span class="small">
-                        Cafe Inventory
-                    </span>
+</header>
 
-                {% endif %}
 
-            </div>
-        </div>
-    </header>
+<div class="app-layout">
+
+    <!-- PC用：左のサイドメニュー（ログイン中のみ） -->
+    {% if g.user %}
+    <nav class="sidebar">
+        {% for item in menu %}
+            {% if not item.manager_only or g.user["role"] == "manager" %}
+            <a
+                href="{{ item.url }}"
+                class="sidebar-link {% if request.endpoint in item.endpoints %}active{% endif %}"
+            >
+                <i class="bi {{ item.icon }} nav-icon"></i>
+                {{ item.label }}
+            </a>
+            {% endif %}
+        {% endfor %}
+    </nav>
+    {% endif %}
 
 
     <!-- 各ページの中身 -->
     <main class="main-container">
 
-        <!-- flash() のメッセージ表示（成功：緑 / エラー：赤） -->
+        <!-- flash() のメッセージ表示（成功：緑 / エラー：赤 / 注意：黄） -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
                 <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
@@ -91,11 +118,29 @@
 
     </main>
 
+</div>
 
-    <!-- Bootstrap JavaScript -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-    </script>
+
+<!-- スマホ用：画面下のナビ（ログイン中のみ） -->
+{% if g.user %}
+<nav class="bottom-nav">
+    {% for item in menu %}
+        {% if not item.manager_only or g.user["role"] == "manager" %}
+        <a
+            href="{{ item.url }}"
+            class="bottom-nav-link {% if request.endpoint in item.endpoints %}active{% endif %}"
+        >
+            <i class="bi {{ item.icon }} nav-icon"></i>
+            {{ item.label }}
+        </a>
+        {% endif %}
+    {% endfor %}
+</nav>
+{% endif %}
+
+
+<!-- Bootstrap JavaScript（お知らせの × ボタンなどで使用） -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

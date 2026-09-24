@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}発注リスト | 在庫管理{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+    <div>
+        <h2 class="page-title">発注リスト</h2>
+        <p class="page-description">適正在庫まで補充するために必要な数を自動で計算しています。</p>
+    </div>
+    <div class="page-date">{{ today }}</div>
+</section>
+
+
+<!-- =========================
+     発注が必要な商品
+     ========================= -->
+<section class="inventory-card mb-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="inventory-card-title">
+            <i class="bi bi-cart3"></i>
+            発注が必要な商品
+        </h3>
+        <span class="stock-badge {% if order_items %}stock-shortage{% else %}stock-normal{% endif %}">
+            {{ order_items|length }} 件
+        </span>
+    </div>
+
+    {% if order_items %}
+
+    <!-- PC：テーブル -->
+    <div class="table-wrap d-none d-md-block">
+        <table class="table inventory-table align-middle">
+            <thead>
+                <tr>
+                    <th>商品名</th>
+                    <th>現在庫</th>
+                    <th>適正在庫</th>
+                    <th>発注する数</th>
+                    <th>在庫の目安</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_items %}
+                <tr>
+                    <td><strong>{{ item["product_name"] }}</strong></td>
+                    <td class="num">{{ item["current_stock"] }} {{ item["unit"] }}</td>
+                    <td class="num">{{ item["target_stock"] }} {{ item["unit"] }}</td>
+                    <td>
+                        <span class="fs-5 fw-bold num">{{ item["order_quantity"] }}</span> {{ item["unit"] }}
+                    </td>
+                    <td>
+                        {% if item["days_left"] is none %}
+                            <span class="text-muted small">—</span>
+                        {% else %}
+                            あと {{ item["days_left"] }} 日
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- スマホ：カード -->
+    <div class="item-list d-md-none">
+        {% for item in order_items %}
+        <div class="item-card">
+            <div class="item-card-head">
+                <div>
+                    <div class="item-card-title">{{ item["product_name"] }}</div>
+                    <div class="item-card-sub">
+                        現在 {{ item["current_stock"] }} / 適正 {{ item["target_stock"] }} {{ item["unit"] }}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted">発注</div>
+                    <span class="fs-4 fw-bold num">{{ item["order_quantity"] }}</span> {{ item["unit"] }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+
+        <p class="text-center py-4 mb-0 text-muted">
+            <i class="bi bi-check-circle text-success fs-4 d-block mb-2"></i>
+            すべての商品が適正在庫を満たしています。
+        </p>
+
+    {% endif %}
+
+</section>
+
+
+<!-- =========================
+     まだ足りているが、もうすぐ切れそうな商品
+     ========================= -->
+{% if warning_items %}
+<section class="inventory-card">
+
+    <h3 class="inventory-card-title mb-1">
+        <i class="bi bi-hourglass-split"></i>
+        もうすぐ切れそうな商品
+    </h3>
+    <p class="small text-muted mb-3">
+        適正在庫はありますが、今の使用ペースだと3日以内になくなる見込みです。
+    </p>
+
+    <div class="item-list">
+        {% for item in warning_items %}
+        <div class="item-card">
+            <div class="item-card-head">
+                <div>
+                    <div class="item-card-title">{{ item["product_name"] }}</div>
+                    <div class="item-card-sub">現在 {{ item["current_stock"] }} {{ item["unit"] }}</div>
+                </div>
+                <span class="stock-badge stock-excess">あと {{ item["days_left"] }} 日</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</section>
+{% endif %}
+
+{% endblock %}

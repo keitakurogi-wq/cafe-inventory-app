@@ -4,21 +4,11 @@
 
 {% block content %}
 
-<!-- ページタイトル -->
-<section class="mb-4">
-
-    <a href="/" class="text-decoration-none text-muted small">
-        ← 在庫管理へ戻る
-    </a>
-
-    <h2 class="page-title mt-3">
-        マスタ管理
-    </h2>
-
-    <p class="page-description">
-        商品と従業員の登録・編集・削除を行います。
-    </p>
-
+<section class="page-header">
+    <div>
+        <h2 class="page-title">マスタ管理</h2>
+        <p class="page-description">商品と従業員の登録・編集・削除を行います。</p>
+    </div>
 </section>
 
 
@@ -31,7 +21,7 @@
         商品マスタ
     </h3>
 
-    <div class="table-responsive">
+    <div class="table-wrap table-responsive">
 
         <table class="table inventory-table align-middle">
 
@@ -132,7 +122,7 @@
         </div>
 
         <div class="d-grid d-md-block mt-3">
-            <button type="submit" class="btn btn-lg text-white px-5" style="background-color: var(--coffee);">
+            <button type="submit" class="btn btn-coffee btn-lg px-5">
                 商品を登録する
             </button>
         </div>
@@ -151,7 +141,7 @@
         従業員マスタ
     </h3>
 
-    <div class="table-responsive">
+    <div class="table-wrap table-responsive">
 
         <table class="table inventory-table align-middle">
 
@@ -249,7 +239,7 @@
         </div>
 
         <div class="d-grid d-md-block mt-3">
-            <button type="submit" class="btn btn-lg text-white px-5" style="background-color: var(--coffee);">
+            <button type="submit" class="btn btn-coffee btn-lg px-5">
                 従業員を登録する
             </button>
         </div>

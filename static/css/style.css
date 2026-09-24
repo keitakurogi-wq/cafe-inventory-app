@@ -1,38 +1,61 @@
+/* =========================================================
+   喫茶店向け在庫管理アプリ スタイル
+
+   デザインの考え方
+   ・白／薄いグレーを土台に、コーヒーブラウン・ベージュをアクセントに使う
+   ・入力欄やプルダウンは「細い枠線＋小さめの角丸＋フォーカス時のリング」
+   ・バッジは「薄い背景色＋同系色の濃い文字」で落ち着いた印象に
+   ・スマホではテーブルをカード型の一覧に切り替える（HTML側で出し分け）
+   ========================================================= */
+
 :root {
+    /* コーヒー系（ブランドカラー） */
     --coffee-dark: #3b2417;
     --coffee: #7a4a2e;
+    --coffee-hover: #653c24;
     --coffee-light: #b98a65;
+    --coffee-ring: rgba(122, 74, 46, 0.25);
 
+    /* 背景 */
+    --bg: #f7f6f4;
+    --surface: #ffffff;
     --beige: #f5eee7;
     --beige-light: #fbf8f4;
 
+    /* 文字・線 */
     --text-main: #2b211c;
     --text-muted: #746a63;
+    --border: #e6e1dc;
+    --border-strong: #d4ccc5;
 
-    --border: #e4ddd6;
+    /* 状態の色（薄い背景 ＋ 濃い文字） */
+    --danger-bg: #fdecec;
+    --danger-text: #b42318;
+    --success-bg: #e8f5ec;
+    --success-text: #1f7a3a;
+    --warning-bg: #fff4d6;
+    --warning-text: #9a5b00;
 
-    --danger-bg: #fde8e8;
-    --danger-text: #c62828;
+    --radius: 8px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 2px rgba(59, 36, 23, 0.06);
+    --shadow: 0 2px 10px rgba(59, 36, 23, 0.07);
 
-    --success-bg: #e6f4ea;
-    --success-text: #2e7d32;
-
-    --warning-bg: #fff3cd;
-    --warning-text: #b26a00;
-
-    --shadow: 0 4px 14px rgba(59, 36, 23, 0.08);
+    /* サイドメニューとヘッダーの大きさ */
+    --sidebar-width: 220px;
+    --header-height: 60px;
 }
 
-
 body {
-    background-color: #f8f7f5;
+    background-color: var(--bg);
     color: var(--text-main);
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        "Noto Sans JP",
-        sans-serif;
+    font-family: "IBM Plex Sans JP", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 数字は等幅フォントで桁をそろえる */
+.num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
 }
 
 
@@ -41,114 +64,405 @@ body {
 ========================= */
 
 .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    height: var(--header-height);
     background-color: var(--coffee-dark);
-    color: white;
-    padding: 16px 0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
     box-shadow: var(--shadow);
 }
 
-.app-header-title {
-    font-size: 1.4rem;
+.app-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    color: #fff;
+    text-decoration: none;
+}
+
+.app-brand-name {
+    font-size: 1.3rem;
     font-weight: 700;
-    margin: 0;
+}
+
+.app-brand-sub {
+    font-size: 0.8rem;
+    opacity: 0.75;
+}
+
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--beige);
+    color: var(--coffee-dark);
+}
+
+.btn-logout {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 4px 12px;
+    font-size: 0.8rem;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 
 /* =========================
-   メインコンテンツ
+   レイアウト（PC：左にサイドメニュー）
 ========================= */
 
+.app-layout {
+    display: flex;
+    min-height: calc(100vh - var(--header-height));
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    background: var(--beige-light);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+    border-radius: var(--radius);
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.sidebar-link:hover {
+    background: var(--beige);
+}
+
+.sidebar-link.active {
+    background: var(--beige);
+    color: var(--coffee-dark);
+    font-weight: 700;
+}
+
+.nav-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
 .main-container {
+    flex: 1;
+    min-width: 0;
     max-width: 1100px;
-    margin: 0 auto;
-    padding: 32px 20px;
+    padding: 32px 32px 48px;
+}
+
+
+/* =========================
+   スマホ用 下部ナビ
+========================= */
+
+.bottom-nav {
+    display: none;
+}
+
+
+/* =========================
+   ページタイトル
+========================= */
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 .page-title {
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin: 0 0 4px;
 }
 
 .page-description {
     color: var(--text-muted);
-    margin-bottom: 28px;
+    margin: 0;
+    font-size: 0.95rem;
 }
 
-
-/* =========================
-   アクションボタン
-========================= */
-
-.action-card {
-    display: block;
-    text-decoration: none;
-
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-
-    padding: 22px;
-
-    color: var(--text-main);
-
-    box-shadow: var(--shadow);
-
-    transition:
-        transform 0.2s,
-        box-shadow 0.2s;
-}
-
-.action-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(59, 36, 23, 0.12);
-}
-
-.action-card-primary {
-    background: linear-gradient(
-        135deg,
-        var(--coffee),
-        #965e3b
-    );
-
-    color: white;
-}
-
-.action-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.action-description {
+.page-date {
+    color: var(--text-muted);
     font-size: 0.9rem;
-    opacity: 0.85;
+    white-space: nowrap;
 }
 
 
 /* =========================
-   在庫カード
+   カード
 ========================= */
 
 .inventory-card {
-    background: white;
-
+    background: var(--surface);
     border: 1px solid var(--border);
-
-    border-radius: 16px;
-
-    box-shadow: var(--shadow);
-
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
     padding: 24px;
-
-    margin-top: 30px;
 }
 
 .inventory-card-title {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
-    margin-bottom: 20px;
+
+/* =========================
+   トップの操作カード
+========================= */
+
+.action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+    text-decoration: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 16px;
+    color: var(--text-main);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.action-card:hover {
+    color: var(--text-main);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.action-card-primary {
+    background: var(--coffee);
+    border-color: var(--coffee);
+    color: #fff;
+}
+
+.action-card-primary:hover {
+    color: #fff;
+    background: var(--coffee-hover);
+}
+
+.action-card .nav-icon {
+    font-size: 1.8rem;
+}
+
+.action-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.action-description {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+
+/* =========================
+   ボタン
+========================= */
+
+.btn-coffee {
+    background: var(--coffee);
+    border: 1px solid var(--coffee);
+    color: #fff;
+    font-weight: 600;
+    border-radius: var(--radius);
+}
+
+.btn-coffee:hover,
+.btn-coffee:focus {
+    background: var(--coffee-hover);
+    border-color: var(--coffee-hover);
+    color: #fff;
+}
+
+.btn-soft {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-main);
+    font-weight: 500;
+    border-radius: var(--radius);
+}
+
+.btn-soft:hover {
+    background: var(--beige-light);
+    border-color: var(--coffee-light);
+    color: var(--text-main);
+}
+
+.btn:focus-visible {
+    box-shadow: 0 0 0 3px var(--coffee-ring);
+}
+
+
+/* =========================
+   入力欄・プルダウン
+   Bootstrap の既定（太めの角丸・青いリング）を上書きする
+========================= */
+
+.form-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 6px;
+}
+
+.form-control,
+.form-select {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-sm);
+    color: var(--text-main);
+    font-size: 1rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-control-lg,
+.form-select-lg {
+    font-size: 1rem;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: var(--radius);
+}
+
+.form-control:hover,
+.form-select:hover {
+    border-color: var(--coffee-light);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--coffee);
+    box-shadow: 0 0 0 3px var(--coffee-ring);
+}
+
+.form-control::placeholder {
+    color: #aaa19a;
+}
+
+/* プルダウンの矢印を細い線の「⌄」に差し替える */
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23746a63' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='m4 6 4 4 4-4'/%3e%3c/svg%3e");
+    background-size: 16px 16px;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+/* 読み取り専用の表示欄 */
+.form-static {
+    background: var(--beige-light);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+}
+
+/* 検索ボックス（虫めがね付き） */
+.search-box {
+    position: relative;
+}
+
+.search-box .nav-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.search-box .form-control {
+    padding-left: 38px;
+}
+
+
+/* =========================
+   区分の選択（セグメント）
+   グレーの台の上に、選ばれたものだけ白く浮き上がる
+========================= */
+
+.segment {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: #efebe7;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.segment-item {
+    flex: 1;
+}
+
+.segment-item label {
+    display: block;
+    text-align: center;
+    padding: 10px 8px;
+    border-radius: 7px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, color 0.15s;
+}
+
+.segment-item label:hover {
+    color: var(--text-main);
+}
+
+/* ラジオボタン自体は見えなくして、ラベルで表現する */
+.segment-item input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.segment-item input:checked + label {
+    background: var(--surface);
+    color: var(--coffee-dark);
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.segment-item input:focus-visible + label {
+    box-shadow: 0 0 0 3px var(--coffee-ring);
 }
 
 
@@ -162,41 +476,44 @@ body {
 
 .inventory-table thead th {
     background-color: var(--beige-light);
-
-    color: var(--text-main);
-
-    font-weight: 700;
-
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
     border-bottom: 1px solid var(--border);
-
-    padding: 14px;
+    padding: 10px 14px;
+    white-space: nowrap;
 }
 
 .inventory-table td {
-    padding: 16px 14px;
-
+    padding: 14px;
     vertical-align: middle;
-
     border-color: var(--border);
+}
+
+.table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table-wrap .inventory-table tbody tr:last-child td {
+    border-bottom: 0;
 }
 
 
 /* =========================
-   在庫ステータス
+   バッジ（状態）
 ========================= */
 
 .stock-badge {
     display: inline-flex;
-
     align-items: center;
-
-    padding: 6px 12px;
-
+    gap: 4px;
+    padding: 3px 10px;
     border-radius: 999px;
-
-    font-weight: 700;
-
-    font-size: 0.9rem;
+    font-weight: 600;
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .stock-shortage {
@@ -214,31 +531,267 @@ body {
     color: var(--warning-text);
 }
 
+.stock-neutral {
+    background-color: #efebe7;
+    color: var(--text-muted);
+}
+
+.text-shortage {
+    color: var(--danger-text);
+    font-weight: 600;
+}
+
 
 /* =========================
-   スマホ
+   残量バー
+========================= */
+
+.stock-bar {
+    height: 6px;
+    background: #efebe7;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 6px;
+    min-width: 80px;
+}
+
+.stock-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--success-text);
+}
+
+.stock-bar-fill.is-shortage {
+    background: var(--danger-text);
+}
+
+
+/* =========================
+   スマホ用のカード一覧
+========================= */
+
+.item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.item-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--surface);
+}
+
+.item-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.item-card-title {
+    font-weight: 700;
+}
+
+.item-card-sub {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+
+/* =========================
+   ワンタップ登録
+========================= */
+
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.quick-button {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-main);
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.quick-button:hover {
+    background: var(--beige-light);
+    border-color: var(--coffee-light);
+}
+
+.quick-button:active {
+    background: var(--beige);
+}
+
+.quick-button-name {
+    font-weight: 700;
+}
+
+.quick-button-action {
+    font-size: 0.85rem;
+    color: var(--coffee);
+    font-weight: 600;
+}
+
+
+/* =========================
+   お知らせ（flash）
+========================= */
+
+.alert {
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: #cbe8d4;
+}
+
+.alert-danger {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: #f5c9c5;
+}
+
+.alert-warning {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+    border-color: #f3dfa6;
+}
+
+/* 発注リストへの案内バナー */
+.notice-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border: 1px solid #f5c9c5;
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.notice-link:hover {
+    color: var(--danger-text);
+    background: #fbe0e0;
+}
+
+
+/* =========================
+   スマホ（767px 以下）
 ========================= */
 
 @media (max-width: 767px) {
 
+    .app-header {
+        padding: 0 16px;
+    }
+
+    .app-brand-sub,
+    .user-name {
+        display: none;
+    }
+
+    /* サイドメニューを隠し、下部ナビに切り替える */
+    .sidebar {
+        display: none;
+    }
+
     .main-container {
-        padding: 24px 16px;
+        padding: 20px 16px 96px;   /* 下部ナビに隠れないよう下に余白 */
+    }
+
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1030;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -2px 10px rgba(59, 36, 23, 0.06);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .bottom-nav-link {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 8px 0 10px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-decoration: none;
+    }
+
+    .bottom-nav-link.active {
+        color: var(--coffee);
+        font-weight: 700;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 4px;
     }
 
     .page-title {
-        font-size: 1.7rem;
-    }
-
-    .action-card {
-        padding: 18px;
+        font-size: 1.35rem;
     }
 
     .inventory-card {
         padding: 16px;
     }
 
-    .inventory-table th,
-    .inventory-table td {
-        white-space: nowrap;
+    /* 操作カードはスマホでは横長のボタンにする */
+    .action-card {
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 14px 16px;
+        gap: 12px;
     }
+
+    .action-card .nav-icon {
+        font-size: 1.4rem;
+    }
+
+    .bottom-nav-link .nav-icon {
+        font-size: 1.3rem;
+    }
+
+    .action-description {
+        display: none;
+    }
+
+    /* iPhone で入力時に画面が勝手にズームしないよう 16px 以上にする */
+    .form-control,
+    .form-select {
+        font-size: 16px;
+    }
+}
+
+
+/* ワンタップのボタン：在庫0のときは押せない見た目に */
+.quick-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
