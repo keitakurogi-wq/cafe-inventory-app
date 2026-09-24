@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}マスタ管理 | 在庫管理{% endblock %}
+
+{% block content %}
+
+<!-- ページタイトル -->
+<section class="mb-4">
+
+    <a href="/" class="text-decoration-none text-muted small">
+        ← 在庫管理へ戻る
+    </a>
+
+    <h2 class="page-title mt-3">
+        マスタ管理
+    </h2>
+
+    <p class="page-description">
+        商品と従業員の登録・編集・削除を行います。
+    </p>
+
+</section>
+
+
+<!-- =========================
+     商品マスタ
+     ========================= -->
+<section class="inventory-card mb-4">
+
+    <h3 class="inventory-card-title mb-3">
+        商品マスタ
+    </h3>
+
+    <div class="table-responsive">
+
+        <table class="table inventory-table align-middle">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>商品名</th>
+                    <th>単位</th>
+                    <th>適正在庫</th>
+                    <th>現在庫</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for product in products %}
+
+                <tr>
+                    <td class="text-muted small">{{ product["product_id"] }}</td>
+                    <td><strong>{{ product["product_name"] }}</strong></td>
+                    <td>{{ product["unit"] }}</td>
+                    <td>{{ product["target_stock"] }}</td>
+                    <td>{{ product["current_stock"] }}</td>
+
+                    <td class="text-end text-nowrap">
+
+                        <a
+                            href="{{ url_for('product_edit', product_id=product['product_id']) }}"
+                            class="btn btn-outline-secondary btn-sm"
+                        >
+                            編集
+                        </a>
+
+                        <!-- 削除はPOSTで送る。押す前に確認ダイアログを出す -->
+                        <form
+                            method="POST"
+                            action="{{ url_for('product_delete', product_id=product['product_id']) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('「{{ product['product_name'] }}」を削除しますか？');"
+                        >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                削除
+                            </button>
+                        </form>
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- 商品の新規登録 -->
+    <h4 class="h6 fw-bold mt-4 mb-3">＋ 商品を追加</h4>
+
+    <form method="POST" action="{{ url_for('product_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="row g-3">
+
+            <div class="col-12 col-md-2">
+                <label for="new_product_id" class="form-label small fw-bold">商品ID</label>
+                <input type="text" class="form-control form-control-lg" id="new_product_id"
+                       name="product_id" placeholder="P005" maxlength="10" required>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label for="new_product_name" class="form-label small fw-bold">商品名</label>
+                <input type="text" class="form-control form-control-lg" id="new_product_name"
+                       name="product_name" placeholder="例）紅茶の茶葉" maxlength="50" required>
+            </div>
+
+            <div class="col-4 col-md-2">
+                <label for="new_unit" class="form-label small fw-bold">単位</label>
+                <input type="text" class="form-control form-control-lg" id="new_unit"
+                       name="unit" placeholder="袋" maxlength="10" required>
+            </div>
+
+            <div class="col-4 col-md-2">
+                <label for="new_target_stock" class="form-label small fw-bold">適正在庫</label>
+                <input type="number" class="form-control form-control-lg" id="new_target_stock"
+                       name="target_stock" min="0" value="0" required>
+            </div>
+
+            <div class="col-4 col-md-2">
+                <label for="new_current_stock" class="form-label small fw-bold">現在庫</label>
+                <input type="number" class="form-control form-control-lg" id="new_current_stock"
+                       name="current_stock" min="0" value="0" required>
+            </div>
+
+        </div>
+
+        <div class="d-grid d-md-block mt-3">
+            <button type="submit" class="btn btn-lg text-white px-5" style="background-color: var(--coffee);">
+                商品を登録する
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+
+<!-- =========================
+     従業員マスタ
+     ========================= -->
+<section class="inventory-card">
+
+    <h3 class="inventory-card-title mb-3">
+        従業員マスタ
+    </h3>
+
+    <div class="table-responsive">
+
+        <table class="table inventory-table align-middle">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>名前</th>
+                    <th>権限</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for employee in employees %}
+
+                <tr>
+                    <td class="text-muted small">{{ employee["employee_id"] }}</td>
+                    <td><strong>{{ employee["employee_name"] }}</strong></td>
+                    <td>
+                        {% if employee["role"] == "manager" %}
+                            <span class="stock-badge stock-excess">店長</span>
+                        {% else %}
+                            <span class="stock-badge stock-normal">スタッフ</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-end text-nowrap">
+
+                        <a
+                            href="{{ url_for('employee_edit', employee_id=employee['employee_id']) }}"
+                            class="btn btn-outline-secondary btn-sm"
+                        >
+                            編集
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('employee_delete', employee_id=employee['employee_id']) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('「{{ employee['employee_name'] }}」を削除しますか？');"
+                        >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                削除
+                            </button>
+                        </form>
+
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- 従業員の新規登録 -->
+    <h4 class="h6 fw-bold mt-4 mb-3">＋ 従業員を追加</h4>
+
+    <form method="POST" action="{{ url_for('employee_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="row g-3">
+
+            <div class="col-12 col-md-3">
+                <label for="new_employee_id" class="form-label small fw-bold">従業員ID</label>
+                <input type="text" class="form-control form-control-lg" id="new_employee_id"
+                       name="employee_id" placeholder="E004" maxlength="10" required>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="new_employee_name" class="form-label small fw-bold">名前</label>
+                <input type="text" class="form-control form-control-lg" id="new_employee_name"
+                       name="employee_name" placeholder="例）鈴木" maxlength="30" required>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="new_role" class="form-label small fw-bold">権限</label>
+                <select class="form-select form-select-lg" id="new_role" name="role">
+                    <option value="staff" selected>スタッフ</option>
+                    <option value="manager">店長</option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="new_password" class="form-label small fw-bold">パスワード（4文字以上）</label>
+                <input type="password" class="form-control form-control-lg" id="new_password"
+                       name="password" minlength="4" autocomplete="new-password" required>
+            </div>
+
+        </div>
+
+        <div class="d-grid d-md-block mt-3">
+            <button type="submit" class="btn btn-lg text-white px-5" style="background-color: var(--coffee);">
+                従業員を登録する
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}

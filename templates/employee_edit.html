@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}従業員の編集 | 在庫管理{% endblock %}
+
+{% block content %}
+
+<section class="mb-4">
+
+    <a href="{{ url_for('master') }}" class="text-decoration-none text-muted small">
+        ← マスタ管理へ戻る
+    </a>
+
+    <h2 class="page-title mt-3">
+        従業員の編集
+    </h2>
+
+    <p class="page-description">
+        従業員ID：{{ employee["employee_id"] }}
+    </p>
+
+</section>
+
+
+<section class="inventory-card">
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-4">
+            <label for="employee_name" class="form-label fw-bold">名前</label>
+            <input type="text" class="form-control form-control-lg" id="employee_name"
+                   name="employee_name" maxlength="30" value="{{ employee['employee_name'] }}" required>
+        </div>
+
+        <div class="mb-4">
+            <label for="role" class="form-label fw-bold">権限</label>
+            <select class="form-select form-select-lg" id="role" name="role">
+                <option value="staff" {% if employee['role'] == 'staff' %}selected{% endif %}>スタッフ</option>
+                <option value="manager" {% if employee['role'] == 'manager' %}selected{% endif %}>店長</option>
+            </select>
+            {% if employee['employee_id'] == g.user['employee_id'] %}
+                <div class="form-text">自分自身の権限は変更できません。</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-4">
+            <label for="password" class="form-label fw-bold">
+                新しいパスワード <span class="text-muted small fw-normal">（変更する場合のみ）</span>
+            </label>
+            <input type="password" class="form-control form-control-lg" id="password"
+                   name="password" minlength="4" autocomplete="new-password">
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-lg text-white" style="background-color: var(--coffee);">
+                更新する
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}ログイン | 在庫管理{% endblock %}
+
+{% block content %}
+
+<!-- ログインフォーム（スマホでも押しやすいよう中央に大きめに配置） -->
+<section class="inventory-card mx-auto" style="max-width: 420px;">
+
+    <h2 class="page-title text-center mb-2">
+        ログイン
+    </h2>
+
+    <p class="page-description text-center mb-4">
+        従業員IDとパスワードを入力してください。
+    </p>
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-4">
+            <label for="employee_id" class="form-label fw-bold">従業員ID</label>
+            <input
+                type="text"
+                class="form-control form-control-lg"
+                id="employee_id"
+                name="employee_id"
+                placeholder="例）E001"
+                value="{{ employee_id }}"
+                autocomplete="username"
+                required
+                autofocus
+            >
+        </div>
+
+        <div class="mb-4">
+            <label for="password" class="form-label fw-bold">パスワード</label>
+            <input
+                type="password"
+                class="form-control form-control-lg"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required
+            >
+        </div>
+
+        <div class="d-grid">
+            <button
+                type="submit"
+                class="btn btn-lg text-white"
+                style="background-color: var(--coffee);"
+            >
+                ログイン
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}

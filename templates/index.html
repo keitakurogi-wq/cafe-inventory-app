@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}ホーム | 在庫管理{% endblock %}
+
+{% block content %}
+
+<!-- ページタイトル -->
+<section class="mb-4">
+
+    <h2 class="page-title">
+        在庫管理
+    </h2>
+
+    <p class="page-description">
+        今日の在庫状況を確認し、必要に応じて入出荷の登録を行いましょう。
+    </p>
+
+</section>
+
+
+<!-- メイン操作 -->
+<section class="row g-3 mb-4">
+
+    <!-- 入出荷入力 -->
+    <div class="col-12 col-md-4">
+
+        <a
+            href="{{ url_for('inventory_input') }}"
+            class="action-card action-card-primary h-100"
+        >
+
+            <div class="action-title">
+                ＋ 入出荷を入力
+            </div>
+
+            <div class="action-description">
+                商品の入荷・消費・廃棄を登録します
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <!-- 履歴 -->
+    <div class="col-12 col-md-4">
+
+        <a
+            href="{{ url_for('logs') }}"
+            class="action-card h-100"
+        >
+
+            <div class="action-title">
+                ☷ 履歴を見る
+            </div>
+
+            <div class="action-description">
+                過去の入出荷履歴を確認できます
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <!-- マスタ（店長のみ表示。URL直打ちは app.py 側で拒否している） -->
+    {% if g.user["role"] == "manager" %}
+    <div class="col-12 col-md-4">
+
+        <a
+            href="{{ url_for('master') }}"
+            class="action-card h-100"
+        >
+
+            <div class="action-title">
+                ⚙ マスタ管理
+            </div>
+
+            <div class="action-description">
+                商品や適正在庫の設定を行います
+            </div>
+
+        </a>
+
+    </div>
+    {% endif %}
+
+</section>
+
+
+<!-- 在庫状況 -->
+<section class="inventory-card">
+
+    <div
+        class="
+            d-flex
+            flex-column
+            flex-md-row
+            justify-content-between
+            align-items-md-center
+            gap-2
+            mb-3
+        "
+    >
+
+        <h3 class="inventory-card-title mb-0">
+            現在の在庫状況
+        </h3>
+
+        <div class="small text-muted">
+            赤：不足 ／ 緑：適正 ／ 黄：過剰
+        </div>
+
+    </div>
+
+
+    <div class="table-responsive">
+
+        <table class="table inventory-table align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>商品名</th>
+                    <th>現在庫</th>
+                    <th>適正在庫</th>
+                    <th>状態 / 過不足</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for product in products %}
+
+                <tr>
+
+                    <!-- 商品名 -->
+                    <td>
+
+                        <strong>
+                            {{ product["product_name"] }}
+                        </strong>
+
+                    </td>
+
+
+                    <!-- 現在庫 -->
+                    <td>
+
+                        {{ product["current_stock"] }}
+                        {{ product["unit"] }}
+
+                    </td>
+
+
+                    <!-- 適正在庫 -->
+                    <td>
+
+                        {{ product["target_stock"] }}
+                        {{ product["unit"] }}
+
+                    </td>
+
+
+                    <!-- 状態 -->
+                    <td>
+
+                        {% if product["difference"] < 0 %}
+
+                            <span class="stock-badge stock-shortage">
+
+                                不足
+                                {{ product["difference"] }}
+                                {{ product["unit"] }}
+
+                            </span>
+
+                        {% elif product["difference"] == 0 %}
+
+                            <span class="stock-badge stock-normal">
+
+                                適正
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="stock-badge stock-excess">
+
+                                過剰
+                                +{{ product["difference"] }}
+                                {{ product["unit"] }}
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}

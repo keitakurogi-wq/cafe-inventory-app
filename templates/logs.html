@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}履歴一覧 | 在庫管理{% endblock %}
+
+{% block content %}
+
+<!-- ページタイトル -->
+<section class="mb-4">
+
+    <a href="/" class="text-decoration-none text-muted small">
+        ← 在庫管理へ戻る
+    </a>
+
+    <h2 class="page-title mt-3">
+        履歴一覧
+    </h2>
+
+    <p class="page-description">
+        いつ・どの商品を・どれだけ入出荷したかを確認できます。
+    </p>
+
+</section>
+
+
+<!-- 絞り込みフォーム（GETで送信 → URLに条件が付く） -->
+<section class="inventory-card mb-4">
+
+    <form method="GET" action="{{ url_for('logs') }}">
+
+        <div class="row g-3">
+
+            <!-- 期間（開始） -->
+            <div class="col-12 col-md-3">
+                <label for="date_from" class="form-label fw-bold">期間（から）</label>
+                <input
+                    type="date"
+                    class="form-control form-control-lg"
+                    id="date_from"
+                    name="date_from"
+                    value="{{ filters.get('date_from', '') }}"
+                >
+            </div>
+
+            <!-- 期間（終了） -->
+            <div class="col-12 col-md-3">
+                <label for="date_to" class="form-label fw-bold">期間（まで）</label>
+                <input
+                    type="date"
+                    class="form-control form-control-lg"
+                    id="date_to"
+                    name="date_to"
+                    value="{{ filters.get('date_to', '') }}"
+                >
+            </div>
+
+            <!-- 商品 -->
+            <div class="col-12 col-md-3">
+                <label for="product_id" class="form-label fw-bold">商品</label>
+                <select class="form-select form-select-lg" id="product_id" name="product_id">
+                    <option value="">すべて</option>
+                    {% for product in products %}
+                        <option
+                            value="{{ product['product_id'] }}"
+                            {% if filters.get('product_id') == product['product_id'] %}selected{% endif %}
+                        >
+                            {{ product["product_name"] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 区分 -->
+            <div class="col-12 col-md-3">
+                <label for="category_id" class="form-label fw-bold">区分</label>
+                <select class="form-select form-select-lg" id="category_id" name="category_id">
+                    <option value="">すべて</option>
+                    {% for category in categories %}
+                        <option
+                            value="{{ category['category_id'] }}"
+                            {% if filters.get('category_id') == category['category_id']|string %}selected{% endif %}
+                        >
+                            {{ category["category_name"] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+
+        <!-- ボタン（スマホでは縦並び、PCでは横並び） -->
+        <div class="d-flex flex-column flex-md-row gap-2 mt-3">
+
+            <button
+                type="submit"
+                class="btn btn-lg text-white px-5"
+                style="background-color: var(--coffee);"
+            >
+                検索
+            </button>
+
+            <!-- 条件なしのURLへ移動 ＝ クリア -->
+            <a href="{{ url_for('logs') }}" class="btn btn-lg btn-outline-secondary px-5">
+                クリア
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<!-- 履歴一覧 -->
+<section class="inventory-card">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="inventory-card-title mb-0">
+            履歴
+        </h3>
+        <div class="small text-muted">
+            {{ logs|length }} 件
+        </div>
+    </div>
+
+    {% if logs %}
+
+    <div class="table-responsive">
+
+        <table class="table inventory-table align-middle">
+
+            <thead>
+                <tr>
+                    <th>日時</th>
+                    <th>商品名</th>
+                    <th>区分</th>
+                    <th>数量</th>
+                    <th>メモ</th>
+                    <th>担当者</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for log in logs %}
+
+                <tr>
+
+                    <!-- 日時（秒は省略して表示） -->
+                    <td class="text-nowrap">
+                        {{ log["created_at"][:16] }}
+                    </td>
+
+                    <td>
+                        <strong>{{ log["product_name"] }}</strong>
+                    </td>
+
+                    <!-- 区分：入荷は緑、消費・廃棄は赤 -->
+                    <td>
+                        {% if log["category_name"] == "入荷" %}
+                            <span class="stock-badge stock-normal">入荷</span>
+                        {% else %}
+                            <span class="stock-badge stock-shortage">{{ log["category_name"] }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- 数量：入荷は＋、消費・廃棄は− -->
+                    <td class="text-nowrap">
+                        {% if log["category_name"] == "入荷" %}+{% else %}−{% endif %}{{ log["quantity"] }}
+                        {{ log["unit"] }}
+                    </td>
+
+                    <!-- メモ（未入力なら空欄） -->
+                    <td class="small">
+                        {{ log["memo"] or "" }}
+                    </td>
+
+                    <td class="text-nowrap">
+                        {{ log["employee_name"] }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% else %}
+
+        <p class="text-muted text-center py-4 mb-0">
+            該当する履歴はありません。
+        </p>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

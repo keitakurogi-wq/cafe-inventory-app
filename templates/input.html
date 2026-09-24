@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}入出荷入力 | 在庫管理{% endblock %}
+
+{% block content %}
+
+<!-- ページタイトル -->
+<section class="mb-4">
+
+    <a href="/" class="text-decoration-none text-muted small">
+        ← 在庫管理へ戻る
+    </a>
+
+    <h2 class="page-title mt-3">
+        入出荷入力
+    </h2>
+
+    <p class="page-description">
+        商品の入荷・消費・廃棄を登録します。
+    </p>
+
+</section>
+
+
+<!-- 入力フォーム（エラー時は入力内容を form から復元する） -->
+<section class="inventory-card">
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- 商品 -->
+        <div class="mb-4">
+
+            <label
+                for="product_id"
+                class="form-label fw-bold"
+            >
+                商品
+            </label>
+
+            <select
+                class="form-select form-select-lg"
+                id="product_id"
+                name="product_id"
+                required
+            >
+
+                <option value="">
+                    商品を選択してください
+                </option>
+
+                {% for product in products %}
+
+                    <option
+                        value="{{ product['product_id'] }}"
+                        {% if form.get('product_id') == product['product_id'] %}selected{% endif %}
+                    >
+
+                        {{ product["product_name"] }}
+
+                        （現在庫：
+                        {{ product["current_stock"] }}
+                        {{ product["unit"] }}）
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <!-- 区分 -->
+        <div class="mb-4">
+
+            <label class="form-label fw-bold">
+                区分
+            </label>
+
+            <div class="row g-2">
+
+                {% for category in categories %}
+
+                <div class="col-12 col-md-4">
+
+                    <input
+                        type="radio"
+                        class="btn-check"
+                        name="category_id"
+                        id="category_{{ category['category_id'] }}"
+                        value="{{ category['category_id'] }}"
+                        {% if form.get('category_id') == category['category_id']|string %}checked{% endif %}
+                        required
+                    >
+
+                    <label
+                        class="btn btn-outline-secondary w-100 py-3"
+                        for="category_{{ category['category_id'] }}"
+                    >
+
+                        {{ category["category_name"] }}
+
+                    </label>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- 数量 -->
+        <div class="mb-4">
+
+            <label
+                for="quantity"
+                class="form-label fw-bold"
+            >
+                数量
+            </label>
+
+            <input
+                type="number"
+                class="form-control form-control-lg"
+                id="quantity"
+                name="quantity"
+                min="1"
+                max="99999"
+                value="{{ form.get('quantity', 1) }}"
+                required
+            >
+
+        </div>
+
+
+        <!-- 担当者 -->
+        <div class="mb-4">
+
+            <label
+                for="employee_id"
+                class="form-label fw-bold"
+            >
+                担当者
+            </label>
+
+            <select
+                class="form-select form-select-lg"
+                id="employee_id"
+                name="employee_id"
+                required
+            >
+
+                {% for employee in employees %}
+
+                    <option
+                        value="{{ employee['employee_id'] }}"
+                        {% if form.get('employee_id', g.user['employee_id']) == employee['employee_id'] %}selected{% endif %}
+                    >
+                        {{ employee["employee_name"] }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <!-- メモ（任意） -->
+        <div class="mb-4">
+
+            <label
+                for="memo"
+                class="form-label fw-bold"
+            >
+                メモ <span class="text-muted small fw-normal">（任意）</span>
+            </label>
+
+            <input
+                type="text"
+                class="form-control form-control-lg"
+                id="memo"
+                name="memo"
+                maxlength="100"
+                placeholder="例）仕入れ分、ホットコーヒー用 など"
+                value="{{ form.get('memo', '') }}"
+            >
+
+        </div>
+
+
+        <!-- 登録ボタン -->
+        <div class="d-grid">
+
+            <button
+                type="submit"
+                class="btn btn-lg text-white"
+                style="background-color: var(--coffee);"
+            >
+                登録する
+            </button>
+
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}

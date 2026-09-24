@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}商品の編集 | 在庫管理{% endblock %}
+
+{% block content %}
+
+<section class="mb-4">
+
+    <a href="{{ url_for('master') }}" class="text-decoration-none text-muted small">
+        ← マスタ管理へ戻る
+    </a>
+
+    <h2 class="page-title mt-3">
+        商品の編集
+    </h2>
+
+    <p class="page-description">
+        商品ID：{{ product["product_id"] }}
+    </p>
+
+</section>
+
+
+<section class="inventory-card">
+
+    <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-4">
+            <label for="product_name" class="form-label fw-bold">商品名</label>
+            <input type="text" class="form-control form-control-lg" id="product_name"
+                   name="product_name" maxlength="50" value="{{ product['product_name'] }}" required>
+        </div>
+
+        <div class="mb-4">
+            <label for="unit" class="form-label fw-bold">単位</label>
+            <input type="text" class="form-control form-control-lg" id="unit"
+                   name="unit" maxlength="10" value="{{ product['unit'] }}" required>
+        </div>
+
+        <div class="mb-4">
+            <label for="target_stock" class="form-label fw-bold">適正在庫</label>
+            <input type="number" class="form-control form-control-lg" id="target_stock"
+                   name="target_stock" min="0" value="{{ product['target_stock'] }}" required>
+        </div>
+
+        <!-- 現在庫は表示のみ（変更は入出荷入力から行う） -->
+        <div class="mb-4">
+            <label class="form-label fw-bold">現在庫</label>
+            <div class="form-control form-control-lg bg-light">
+                {{ product["current_stock"] }} {{ product["unit"] }}
+            </div>
+            <div class="form-text">
+                現在庫は「入出荷を入力」から変更してください（履歴を残すため）。
+            </div>
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-lg text-white" style="background-color: var(--coffee);">
+                更新する
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}
