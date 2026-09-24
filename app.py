@@ -435,7 +435,7 @@ def inventory_input():
         error = register_inventory(request.form)
 
         if error is None:
-            flash("登録しました。", "success")
+            flash_undo(f"{g.last_log_text}を登録しました。", g.last_log_id)
             return redirect(url_for("index"))
 
         # エラー時は入力画面を再表示（入力内容は残す）
@@ -511,11 +511,164 @@ def inventory_quick():
     error = register_inventory(form)
 
     if error is None:
-        flash("1つ登録しました。", "success")
+        flash_undo(f"{g.last_log_text}を登録しました。", g.last_log_id)
     else:
         flash(error, "danger")
 
     return redirect(url_for("inventory_input"))
+
+
+def flash_undo(message, log_id):
+    """
+    「取り消す」ボタン付きのお知らせを出す。
+    flash() の第2引数（カテゴリ）に "undo:ログID" を入れておき、
+    base.html 側でボタンを表示する。
+    """
+    flash(message, f"undo:{log_id}")
+
+
+# 取り消しできるのは登録から何分以内か
+UNDO_MINUTES = 10
+
+
+@app.route("/logs/<int:log_id>/undo", methods=["POST"])
+@login_required
+def log_undo(log_id):
+    """
+    登録の取り消し：履歴を削除し、在庫を元に戻す。
+    ・登録から10分以内のみ
+    ・本人の登録のみ（店長は全員分を取り消せる）
+    """
+    conn = get_db_connection()
+
+    log = conn.execute(
+        """
+        SELECT inventory_logs.*, categories.category_name, products.current_stock
+        FROM inventory_logs
+        JOIN categories ON inventory_logs.category_id = categories.category_id
+        JOIN products ON inventory_logs.product_id = products.product_id
+        WHERE inventory_logs.id = ?
+        """,
+        (log_id,)
+    ).fetchone()
+
+    error = None
+    limit = (datetime.now(JST) - timedelta(minutes=UNDO_MINUTES)).strftime("%Y-%m-%d %H:%M:%S")
+
+    if log is None:
+        error = "取り消す履歴が見つかりません。"
+    elif log["employee_id"] != g.user["employee_id"] and g.user["role"] != "manager":
+        error = "他の人の登録は取り消せません。"
+    elif log["created_at"] < limit:
+        error = f"登録から{UNDO_MINUTES}分以上たったため取り消せません。"
+    else:
+        # 登録したときと逆向きに在庫を戻す
+        if log["category_name"] == "入荷":
+            change = -log["quantity"]
+        else:
+            change = log["quantity"]
+
+        if log["current_stock"] + change < 0:
+            error = "すでに在庫を使っているため取り消せません。"
+
+    if error:
+        conn.close()
+        flash(error, "danger")
+        return redirect(request.referrer or url_for("index"))
+
+    with conn:
+        conn.execute("DELETE FROM inventory_logs WHERE id = ?", (log_id,))
+        conn.execute(
+            "UPDATE products SET current_stock = current_stock + ? WHERE product_id = ?",
+            (change, log["product_id"])
+        )
+
+    conn.close()
+
+    flash("登録を取り消しました。", "success")
+    return redirect(request.referrer or url_for("index"))
+
+
+# =========================
+# 棚卸し
+# 実際に数えた数を入力すると、帳簿（current_stock）との差を自動で調整する
+# =========================
+
+@app.route("/stocktake", methods=["GET", "POST"])
+@login_required
+def stocktake():
+
+    conn = get_db_connection()
+
+    products = conn.execute(
+        "SELECT product_id, product_name, unit, current_stock FROM products ORDER BY product_id"
+    ).fetchall()
+
+    if request.method == "POST":
+
+        # 入荷・廃棄の区分IDを取得（増えていたら入荷、減っていたら廃棄として記録）
+        categories = {
+            row["category_name"]: row["category_id"]
+            for row in conn.execute("SELECT category_id, category_name FROM categories")
+        }
+
+        adjustments = []   # (商品, 差) のリスト
+
+        for product in products:
+            # 入力欄の name は count_P001 のような形
+            value = request.form.get(f"count_{product['product_id']}", "").strip()
+
+            # 空欄の商品は数えていないものとしてスキップ
+            if value == "":
+                continue
+
+            counted = to_int(value)
+            if counted is None:
+                conn.close()
+                flash(f"{product['product_name']}の数は0〜{MAX_NUMBER}の数字で入力してください。", "danger")
+                return render_template("stocktake.html", products=products, form=request.form)
+
+            diff = counted - product["current_stock"]
+            if diff != 0:
+                adjustments.append((product, diff))
+
+        if not adjustments:
+            conn.close()
+            flash("帳簿と実際の数が一致しました。調整はありません。", "success")
+            return redirect(url_for("index"))
+
+        created_at = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+
+        # すべての商品の調整を1つのトランザクションで行う
+        with conn:
+            for product, diff in adjustments:
+                if diff > 0:
+                    category_id = categories["入荷"]
+                else:
+                    category_id = categories["廃棄"]
+
+                conn.execute(
+                    """
+                    INSERT INTO inventory_logs
+                        (created_at, product_id, category_id, quantity, employee_id, memo)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (created_at, product["product_id"], category_id, abs(diff),
+                     g.user["employee_id"], "棚卸し調整")
+                )
+                conn.execute(
+                    "UPDATE products SET current_stock = current_stock + ? WHERE product_id = ?",
+                    (diff, product["product_id"])
+                )
+
+        conn.close()
+
+        flash(f"棚卸しを反映しました（{len(adjustments)}件を調整）。", "success")
+        return redirect(url_for("index"))
+
+    conn.close()
+
+    return render_template("stocktake.html", products=products, form={})
 
 
 def register_inventory(form):
@@ -585,7 +738,7 @@ def register_inventory(form):
         # with conn: の中は1つのトランザクション
         # 途中でエラーが起きたら両方とも取り消し（ロールバック）される
         with conn:
-            conn.execute(
+            cursor = conn.execute(
                 """
                 INSERT INTO inventory_logs (
                     created_at,
@@ -608,6 +761,15 @@ def register_inventory(form):
                 """,
                 (change, product_id)
             )
+
+        # 呼び出し元でお知らせ（トースト）と「取り消す」ボタンに使う
+        # g はこのリクエストの間だけ使える入れ物
+        sign = "+" if change > 0 else "−"
+        g.last_log_id = cursor.lastrowid
+        g.last_log_text = (
+            f"{product['product_name']} {sign}{quantity}{product['unit']}"
+            f"（{category['category_name']}）"
+        )
 
         return None
 

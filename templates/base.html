@@ -43,6 +43,7 @@
     {"label": "入出荷入力", "icon": "bi-plus-circle", "url": url_for("inventory_input"), "endpoints": ["inventory_input"], "manager_only": False},
     {"label": "履歴一覧", "icon": "bi-list-ul", "url": url_for("logs"), "endpoints": ["logs"], "manager_only": False},
     {"label": "発注リスト", "icon": "bi-cart3", "url": url_for("orders"), "endpoints": ["orders"], "manager_only": False},
+    {"label": "棚卸し", "icon": "bi-clipboard-check", "url": url_for("stocktake"), "endpoints": ["stocktake"], "manager_only": False, "pc_only": True},
     {"label": "マスタ管理", "icon": "bi-gear", "url": url_for("master"),
      "endpoints": ["master", "product_edit", "employee_edit"], "manager_only": True},
 ] %}
@@ -103,15 +104,20 @@
     <!-- 各ページの中身 -->
     <main class="main-container">
 
-        <!-- flash() のメッセージ表示（成功：緑 / エラー：赤 / 注意：黄） -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
+        <!--
+            エラー・注意のお知らせ（赤・黄）は、読み逃さないよう
+            ページ内に表示して自動では消さない。
+            成功のお知らせは下の「トースト」で表示する。
+        -->
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            {% if category in ["danger", "warning"] %}
                 <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-circle"></i>
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
                 </div>
-            {% endfor %}
-        {% endwith %}
+            {% endif %}
+        {% endfor %}
 
         {% block content %}
         {% endblock %}
@@ -121,10 +127,44 @@
 </div>
 
 
+<!--
+    トースト（成功のお知らせ）
+    画面の上に「重ねて」表示するので、ページの内容が押し下げられず
+    ボタンの位置がずれない。数秒で自動的に消える。
+    カテゴリが "undo:ログID" のときは「取り消す」ボタンも付ける。
+-->
+<div class="toast-area">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+        {% if category == "success" or category.startswith("undo:") %}
+        <div
+            class="toast app-toast"
+            role="status"
+            aria-live="polite"
+            data-bs-delay="{% if category.startswith('undo:') %}6000{% else %}3000{% endif %}"
+        >
+            <div class="app-toast-body">
+                <i class="bi bi-check-circle-fill app-toast-icon"></i>
+                <span class="flex-grow-1">{{ message }}</span>
+
+                {% if category.startswith("undo:") %}
+                <form method="POST" action="{{ url_for('log_undo', log_id=category[5:]|int) }}" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="app-toast-undo">取り消す</button>
+                </form>
+                {% endif %}
+
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="閉じる"></button>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+
 <!-- スマホ用：画面下のナビ（ログイン中のみ） -->
 {% if g.user %}
 <nav class="bottom-nav">
-    {% for item in menu %}
+    {% for item in menu if not item.pc_only %}
         {% if not item.manager_only or g.user["role"] == "manager" %}
         <a
             href="{{ item.url }}"
@@ -141,6 +181,13 @@
 
 <!-- Bootstrap JavaScript（お知らせの × ボタンなどで使用） -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ページを開いたら、トーストを表示する（数秒後に自動で消える） -->
+<script>
+    document.querySelectorAll(".toast").forEach(function (element) {
+        bootstrap.Toast.getOrCreateInstance(element).show();
+    });
+</script>
 
 </body>
 </html>

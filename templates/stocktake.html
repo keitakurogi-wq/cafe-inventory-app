@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}棚卸し | 在庫管理{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+    <div>
+        <h2 class="page-title">棚卸し</h2>
+        <p class="page-description">
+            実際に数えた数を入力してください。帳簿との差は自動で調整され、履歴に「棚卸し調整」として残ります。
+        </p>
+    </div>
+</section>
+
+
+<section class="inventory-card">
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <p class="small text-muted">
+            <i class="bi bi-info-circle"></i>
+            数えていない商品は空欄のままで大丈夫です（変更されません）。
+        </p>
+
+        <div class="item-list mb-4">
+            {% for product in products %}
+            <div class="item-card">
+                <div class="row g-2 align-items-center">
+
+                    <div class="col-12 col-md-6">
+                        <label for="count_{{ product['product_id'] }}" class="item-card-title d-block">
+                            {{ product["product_name"] }}
+                        </label>
+                        <div class="item-card-sub">
+                            帳簿上の在庫：<span class="num">{{ product["current_stock"] }}</span> {{ product["unit"] }}
+                        </div>
+                    </div>
+
+                    <!-- 実際の数（name は count_商品ID） -->
+                    <div class="col-12 col-md-6">
+                        <div class="input-group">
+                            <input
+                                type="number"
+                                class="form-control form-control-lg"
+                                id="count_{{ product['product_id'] }}"
+                                name="count_{{ product['product_id'] }}"
+                                min="0"
+                                max="99999"
+                                inputmode="numeric"
+                                placeholder="実際の数"
+                                value="{{ form.get('count_' ~ product['product_id'], '') }}"
+                            >
+                            <span class="input-group-text">{{ product["unit"] }}</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="d-grid">
+            <button
+                type="submit"
+                class="btn btn-coffee btn-lg"
+                onclick="return confirm('入力した数で在庫を調整します。よろしいですか？');"
+            >
+                棚卸しを反映する
+            </button>
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}

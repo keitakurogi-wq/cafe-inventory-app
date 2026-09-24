@@ -795,3 +795,74 @@ body {
     opacity: 0.45;
     cursor: not-allowed;
 }
+
+
+/* =========================
+   トースト（成功のお知らせ）
+   画面に重ねて表示するので、下の内容の位置がずれない
+========================= */
+
+.toast-area {
+    position: fixed;
+    top: calc(var(--header-height) + 12px);
+    right: 16px;
+    z-index: 1090;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(420px, calc(100vw - 32px));
+    pointer-events: none;   /* トーストの無い部分は下の画面を押せるように */
+}
+
+.app-toast {
+    width: 100%;
+    background: var(--coffee-dark);
+    color: #fff;
+    border: 0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(59, 36, 23, 0.25);
+    pointer-events: auto;
+}
+
+.app-toast-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+}
+
+.app-toast-icon {
+    color: #8fd19e;
+}
+
+.app-toast-undo {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.app-toast-undo:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* スマホでは画面上部の中央に表示 */
+@media (max-width: 767px) {
+    .toast-area {
+        right: 16px;
+        left: 16px;
+        width: auto;
+    }
+}
+
+/* 入力欄の右につく単位（kg・本 など） */
+.input-group-text {
+    background: var(--beige-light);
+    border-color: var(--border-strong);
+    color: var(--text-muted);
+}
